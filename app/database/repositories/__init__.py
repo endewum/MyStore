@@ -10,6 +10,7 @@ from app.database.repositories.inventory import InventoryRepository
 from app.database.repositories.notification import (
     BroadcastRepository,
     NotificationRepository,
+    ProductStockAlertRepository,
     StockAlertRepository,
 )
 from app.database.repositories.order import (
@@ -44,6 +45,7 @@ __all__ = [
     "PaymentRepository",
     "PlanRepository",
     "ProductRepository",
+    "ProductStockAlertRepository",
     "SettingRepository",
     "StockAlertRepository",
     "UserRepository",

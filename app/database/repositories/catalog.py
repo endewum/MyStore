@@ -41,7 +41,11 @@ class ProductRepository(BaseRepository[Product]):
 
     def _storefront_stmt(self, category_id: int | None = None) -> Select[tuple[Product]]:
         """Active products, featured first, then by sort order and name."""
-        stmt = select(Product).where(Product.is_active.is_(True))
+        stmt = (
+            select(Product)
+            .where(Product.is_active.is_(True))
+            .options(selectinload(Product.plans))
+        )
         if category_id:
             stmt = stmt.where(Product.category_id == category_id)
         return stmt.order_by(

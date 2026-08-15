@@ -25,6 +25,7 @@ from app.database.models.notification import (
     Broadcast,
     Notification,
     NotificationRecipient,
+    ProductStockAlert,
     StockAlert,
 )
 from app.database.models.order import (
@@ -68,6 +69,7 @@ __all__ = [
     "PaymentStatus",
     "Plan",
     "Product",
+    "ProductStockAlert",
     "Setting",
     "StockAlert",
     "StockAlertStatus",

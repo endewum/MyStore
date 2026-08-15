@@ -22,6 +22,8 @@ from app.database.models import (
     NotificationRecipient,
     NotificationType,
     Plan,
+    Product,
+    ProductStockAlert,
     StockAlert,
     StockAlertStatus,
     User,
@@ -29,6 +31,7 @@ from app.database.models import (
 from app.database.repositories import (
     AdminLogRepository,
     NotificationRepository,
+    ProductStockAlertRepository,
     StockAlertRepository,
     UserRepository,
 )
@@ -65,6 +68,7 @@ class NotificationService:
         self.dispatcher = dispatcher
         self.notifications = NotificationRepository(session)
         self.alerts = StockAlertRepository(session)
+        self.product_alerts = ProductStockAlertRepository(session)
         self.users = UserRepository(session)
         self.logs = AdminLogRepository(session)
 
@@ -212,6 +216,52 @@ class NotificationService:
             alert.notified_at = None
             await self.session.flush()
         return alert
+
+    async def subscribe_product_alert(
+        self, product: Product, user: User
+    ) -> ProductStockAlert:
+        """Register interest in a product that has no available plan yet."""
+        if product.is_available:
+            raise ValidationError(
+                "This product has an available plan right now — open it to buy."
+            )
+        alert = await self.product_alerts.get_for_user(product.id, user.id)
+        if alert is None:
+            alert = await self.product_alerts.create(
+                product_id=product.id,
+                user_id=user.id,
+                telegram_id=user.telegram_id,
+                status=StockAlertStatus.WAITING,
+            )
+        else:
+            alert.status = StockAlertStatus.WAITING
+            alert.notified_at = None
+            await self.session.flush()
+        return alert
+
+    async def unsubscribe_product_alert(self, product_id: int, user: User) -> bool:
+        alert = await self.product_alerts.get_for_user(product_id, user.id)
+        if alert is None or alert.status is not StockAlertStatus.WAITING:
+            return False
+        alert.status = StockAlertStatus.CANCELLED
+        await self.session.flush()
+        return True
+
+    async def is_product_subscribed(self, product_id: int, user: User) -> bool:
+        alert = await self.product_alerts.get_for_user(product_id, user.id)
+        return alert is not None and alert.status is StockAlertStatus.WAITING
+
+    async def product_waiting_users(self, product_id: int) -> Sequence[User]:
+        return await self.product_alerts.waiting_users(product_id)
+
+    async def product_waiting_count(self, product_id: int) -> int:
+        return await self.product_alerts.count_waiting(product_id)
+
+    async def mark_product_notified(
+        self, product_id: int, user_ids: Sequence[int]
+    ) -> None:
+        """Close product-level waiting-list rows after a successful restock send."""
+        await self.product_alerts.mark_notified(product_id, user_ids)
 
     async def unsubscribe_stock_alert(self, plan_id: int, user: User) -> bool:
         alert = await self.alerts.get_for_user(plan_id, user.id)

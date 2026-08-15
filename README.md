@@ -8,7 +8,7 @@ Payments are **manually verified by an administrator**. The bot never claims a
 payment was detected automatically.
 
 ```
-PLAN CATALOGUE → ORDER → MANUAL PAYMENT → ADMIN REVIEW → FULFILLMENT
+PRODUCT GRID → PLANS → ORDER → MANUAL PAYMENT → ADMIN REVIEW → FULFILLMENT
 ADMIN ADDS STOCK → BACK-IN-STOCK DETECTED → PREVIEW → NOTIFY WAITING LIST / ALL
 ```
 
@@ -49,9 +49,10 @@ ChatGPT                                  Canva
 └── API 500M CODEX 30D — SOLD OUT        └── Canva Teams
 ```
 
-A customer sees every **plan** directly in one compact full-width row, including
-its product, duration, price and availability — no product/category step is
-required. Available plans can be bought; sold-out plans offer **🔔 Notify Me**. Checkout reserves
+A customer sees every **product** in a compact 3-column grid. The button shows
+🟢 when at least one real plan has stock, or ❌ when no plan is currently
+available. Selecting an available product opens its plans. Sold-out plans and
+products offer **🔔 Notify Me**. Checkout reserves
 stock, the customer pays through an admin-configured channel (Binance / Bybit /
 USDT / anything else you add), submits a transaction reference or screenshot,
 and an administrator approves or rejects it by hand before fulfilling the order.
@@ -64,9 +65,9 @@ in-bot admin panel.
 
 **Storefront**
 
-- Plan-first, full-width paginated catalogue: product, duration, price and stock in every row
+- Product-first 3-column paginated grid; products with no live stock show ❌ Out of Stock
 - Plan screen with per-plan status (🟢 available / ❌ sold out), price, duration and stock
-- Category browsing and search across product names, plan names and categories
+- Search across product names and plan names; the Store never groups products by category
 - Order confirmation → payment method → instructions → evidence submission
 - Order history with pagination, notification inbox, personal waiting list
 - Persistent bottom menu plus inline navigation with ◀️ Back / 🏠 Home everywhere
@@ -143,7 +144,7 @@ telegram_store/
 │   ├── config.py             pydantic-settings
 │   └── main.py               polling / webhook entry point
 ├── scripts/                  seed.py, create_admin.py
-├── tests/                    142 tests (SQLite, no external services)
+├── tests/                    148 tests (SQLite, no external services)
 ├── Dockerfile / docker-compose.yml
 ├── alembic.ini / requirements.txt / .env.example
 ```
@@ -263,10 +264,12 @@ python -m scripts.seed            # add sample data (idempotent)
 python -m scripts.seed --reset    # wipe catalog tables first
 ```
 
-This inserts 8 categories, 28 sample products (ChatGPT, Canva, Spotify, Netflix,
-Claude, Gemini, Cursor, ElevenLabs …), 65 plans with fictional prices/stock, and
-three **disabled** payment methods (Binance, Bybit, USDT) with no credentials.
-Enable them from the admin panel once you enter your own details.
+This inserts 28 product shells (ChatGPT, Canva, Spotify, Netflix, Claude,
+Gemini, Cursor, ElevenLabs …) with **zero plans and zero stock**. Therefore all
+products correctly show `❌ Out of Stock` until an administrator adds a real plan
+and real stock from the admin panel. It also adds disabled payment-method shells
+(Binance, Bybit, USDT) with no credentials; enable them only after entering the
+correct details.
 
 ## 10. Running locally
 
@@ -416,7 +419,7 @@ Checklist:
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                       # 142 tests
+pytest                       # 148 tests
 pytest tests/test_orders.py -v
 ```
 

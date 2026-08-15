@@ -27,9 +27,10 @@ class CategoryCB(CallbackData, prefix="cat"):
 
 
 class ProductCB(CallbackData, prefix="p"):
-    """Product detail screen (list of plans)."""
+    """Product screen actions: ``view``, ``notify`` and ``unnotify``."""
 
     product_id: int
+    action: str = "view"
     page: int = 1
 
 

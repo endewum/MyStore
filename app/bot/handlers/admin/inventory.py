@@ -270,11 +270,18 @@ async def _notify(
 ):
     """Send the restock announcement to the chosen audience."""
     if interested_only:
-        recipients = await services.notifications.waiting_users(plan.id)
+        plan_waiters = await services.notifications.waiting_users(plan.id)
+        product_waiters = await services.notifications.product_waiting_users(
+            plan.product_id
+        )
+        recipients_by_id = {
+            user.id: user for user in [*plan_waiters, *product_waiters]
+        }
+        recipients = list(recipients_by_id.values())
     else:
         recipients = await services.notifications.notifiable_users()
     message_text = notify_texts.back_in_stock(plan, targeted=interested_only)
-    return await services.notifications.notify_back_in_stock(
+    report = await services.notifications.notify_back_in_stock(
         plan,
         title=f"{plan.product.name} — {plan.name} is back in stock",
         body=f"{plan.name} is available again at {plan.price_display}.",
@@ -284,6 +291,12 @@ async def _notify(
         admin=admin,
         interested_only=interested_only,
     )
+    if interested_only:
+        product_waiter_ids = [user.id for user in product_waiters]
+        await services.notifications.mark_product_notified(
+            plan.product_id, product_waiter_ids
+        )
+    return report
 
 
 @router.callback_query(AdminStockNotifyCB.filter(F.action == "skip"))

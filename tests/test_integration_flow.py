@@ -103,6 +103,11 @@ async def _walk_to_payment_methods(store: BotHarness) -> None:
     await store.feed(message_update("/start", CUSTOMER_ID))
     await store.feed(press_update("m:store", CUSTOMER_ID))
     await store.feed(
+        press_update(
+            session.find_callback(r"^p:\d+:view", CUSTOMER_ID), CUSTOMER_ID
+        )
+    )
+    await store.feed(
         press_update(session.find_callback(r"^pl:view", CUSTOMER_ID), CUSTOMER_ID)
     )
     await store.feed(
@@ -139,6 +144,14 @@ async def test_dispatcher_registers_every_router(store: BotHarness) -> None:
     } <= names
 
 
+async def test_configured_admin_lands_in_admin_panel_on_start(store: BotHarness) -> None:
+    await store.feed(message_update("/start", ADMIN_ID))
+
+    assert "ADMIN PANEL" in store.session.last_text(ADMIN_ID)
+    assert "⚙️ Admin Panel" not in store.session.button_labels(ADMIN_ID)
+    assert "🛍 Products" in store.session.button_labels(ADMIN_ID)
+
+
 async def test_customer_journey_to_manual_payment_review(store: BotHarness) -> None:
     """Home → store → product → plan → order → payment → evidence submitted."""
     session = store.session
@@ -149,11 +162,18 @@ async def test_customer_journey_to_manual_payment_review(store: BotHarness) -> N
     session.clear()
     await store.feed(press_update("m:store", CUSTOMER_ID))
     assert "STORE" in session.last_text(CUSTOMER_ID)
-    plans_screen = session.last_text(CUSTOMER_ID)
-    assert "Select a plan" in plans_screen
+    store_screen = session.last_text(CUSTOMER_ID)
+    assert "Tap a product to see its plans" in store_screen
     labels = session.button_labels(CUSTOMER_ID)
-    assert any("ChatGPT" in label and "24 left" in label for label in labels)
-    assert any("sold out" in label for label in labels)
+    assert any("ChatGPT" in label and label.startswith("🟢") for label in labels)
+
+    product_cb = session.find_callback(r"^p:\d+:view", CUSTOMER_ID)
+    session.clear()
+    await store.feed(press_update(product_cb, CUSTOMER_ID))
+    plans_screen = session.last_text(CUSTOMER_ID)
+    assert "CHATGPT" in plans_screen
+    assert "24 available" in plans_screen
+    assert "Sold Out" in plans_screen
 
     view_cb = session.find_callback(r"^pl:view", CUSTOMER_ID)
     session.clear()
@@ -286,6 +306,11 @@ async def test_notify_me_then_restock_notification(store: BotHarness) -> None:
 
     await store.feed(message_update("/start", CUSTOMER_ID))
     await store.feed(press_update("m:store", CUSTOMER_ID))
+    await store.feed(
+        press_update(
+            session.find_callback(r"^p:\d+:view", CUSTOMER_ID), CUSTOMER_ID
+        )
+    )
     notify_cb = session.find_callback(r"^pl:notify", CUSTOMER_ID)
     session.clear()
     await store.feed(press_update(notify_cb, CUSTOMER_ID))

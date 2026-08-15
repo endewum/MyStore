@@ -58,6 +58,21 @@ async def cmd_start(
         f"🏪 <b>{settings.store.name}</b>\nUse the menu below at any time.",
         reply_markup=main_reply_keyboard(),
     )
+    if admin is not None:
+        # The configured administrator lands in management immediately, while
+        # the persistent customer menu remains available for customer testing.
+        from app.bot.keyboards.admin.menu import admin_menu_keyboard
+        from app.bot.texts import admin as admin_texts
+
+        counts = await services.dashboard.counts()
+        await message.answer(
+            admin_texts.panel(admin, counts),
+            reply_markup=admin_menu_keyboard(
+                pending_payments=counts["pending_payments"],
+                awaiting_fulfilment=counts["awaiting_fulfilment"],
+            ),
+        )
+        return
     await _home_screen(message, user, services, settings, admin)
 
 

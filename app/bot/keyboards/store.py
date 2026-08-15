@@ -33,7 +33,9 @@ def storefront_keyboard(
     for product in page.items:
         builder.button(
             text=truncate(product.button_title, 18),
-            callback_data=ProductCB(product_id=product.id, page=page.page).pack(),
+            callback_data=ProductCB(
+                product_id=product.id, action="view", page=page.page
+            ).pack(),
         )
     if page.items:
         builder.adjust(columns)
@@ -145,6 +147,28 @@ def categories_keyboard(categories: Sequence[Category]) -> InlineKeyboardMarkup:
         )
     )
     builder.row(*back_home_row(StoreCB(page=1, category=0).pack()))
+    return builder.as_markup()
+
+
+def product_sold_out_keyboard(
+    product: Product,
+    *,
+    subscribed: bool,
+    store_page: int = 1,
+) -> InlineKeyboardMarkup:
+    """Product-level waiting list for shells with no available plan."""
+    builder = InlineKeyboardBuilder()
+    action = "unnotify" if subscribed else "notify"
+    label = "🔕 Stop waiting" if subscribed else "🔔 Notify Me"
+    builder.row(
+        InlineKeyboardButton(
+            text=label,
+            callback_data=ProductCB(
+                product_id=product.id, action=action, page=store_page
+            ).pack(),
+        )
+    )
+    builder.row(*back_home_row(StoreCB(page=store_page, category=0).pack()))
     return builder.as_markup()
 
 

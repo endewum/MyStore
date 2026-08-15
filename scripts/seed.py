@@ -1,8 +1,8 @@
-"""Seed the database with sample categories, products, plans and payment methods.
+"""Seed database product shells and disabled payment-method placeholders.
 
-Everything here is **sample development data**: prices, stock levels and the
-payment placeholders are fictional. Real payment credentials must be entered
-from the admin panel and are never stored in source control.
+The seed intentionally creates **no plans, inventory or stock**. Products must
+show as out of stock until an administrator adds real offers through the bot.
+This prevents sample values from ever being shown or sold to customers.
 
 Usage::
 
@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from decimal import Decimal
 
 from sqlalchemy import delete
 
@@ -22,15 +21,11 @@ from app.config import get_settings
 from app.database.models import (
     Category,
     DeliveryType,
-    InventoryItem,
-    InventoryStatus,
-    Plan,
     Product,
 )
 from app.database.repositories import (
     CategoryRepository,
     PaymentMethodRepository,
-    PlanRepository,
     ProductRepository,
 )
 from app.database.session import Database
@@ -418,7 +413,6 @@ async def seed(reset: bool = False) -> None:
     async with database.session() as session:
         categories = CategoryRepository(session)
         products = ProductRepository(session)
-        plans = PlanRepository(session)
         methods = PaymentMethodRepository(session)
 
         if reset:
@@ -437,9 +431,9 @@ async def seed(reset: bool = False) -> None:
                 )
             category_ids[name] = existing.id
 
-        created_products = created_plans = created_items = 0
+        created_products = 0
         for order, entry in enumerate(PRODUCTS, start=1):
-            name, emoji, category, featured, description, plan_rows = entry
+            name, emoji, category, featured, description, _plan_rows = entry
             slug = slugify(name, "product")
             product = await products.get_by(slug=slug)
             if product is None:
@@ -453,26 +447,6 @@ async def seed(reset: bool = False) -> None:
                     sort_order=order * 10,
                 )
                 created_products += 1
-
-            for plan_order, row in enumerate(plan_rows, start=1):
-                plan_name, duration, price, stock, delivery = row
-                plan = await plans.get_by(product_id=product.id, name=plan_name)
-                if plan is not None:
-                    continue
-                plan = await plans.create(
-                    product_id=product.id,
-                    name=plan_name,
-                    duration=duration,
-                    price=Decimal(price),
-                    currency=settings.store.currency,
-                    stock_quantity=stock,
-                    delivery_type=delivery,
-                    sort_order=plan_order * 10,
-                    description=f"{name} — {plan_name}. Delivered after manual "
-                    "payment verification.",
-                )
-                created_plans += 1
-                created_items += await _seed_inventory(session, plan, stock)
 
         for payload in PAYMENT_METHODS:
             if await methods.get_by_code(payload["code"]) is None:
@@ -489,32 +463,9 @@ async def seed(reset: bool = False) -> None:
     logger.info(
         "seed.done",
         products=created_products,
-        plans=created_plans,
-        inventory_items=created_items,
+        plans=0,
+        inventory_items=0,
     )
-
-
-async def _seed_inventory(session, plan: Plan, stock: int) -> int:
-    """Create one placeholder inventory row per unit of stock.
-
-    Row count must match ``stock_quantity`` for code/account plans, otherwise
-    checkout would reserve a unit with nothing behind it.
-    """
-    if stock <= 0 or plan.delivery_type is DeliveryType.MANUAL:
-        return 0
-    prefix = slugify(plan.name, "item").upper()[:18]
-    session.add_all(
-        [
-            InventoryItem(
-                plan_id=plan.id,
-                value=f"SAMPLE-{prefix}-{index:03d}",
-                note="Sample development data",
-                status=InventoryStatus.AVAILABLE,
-            )
-            for index in range(1, stock + 1)
-        ]
-    )
-    return stock
 
 
 def main() -> None:

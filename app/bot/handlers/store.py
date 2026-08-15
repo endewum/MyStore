@@ -12,8 +12,8 @@ from app.bot.handlers.helpers import answer_callback, render
 from app.bot.keyboards.common import BTN_SEARCH, BTN_STORE, navigation_keyboard
 from app.bot.keyboards.store import (
     categories_keyboard,
-    flat_store_keyboard,
     search_results_keyboard,
+    storefront_keyboard,
 )
 from app.bot.states import SearchStates
 from app.bot.texts import customer as texts
@@ -35,31 +35,28 @@ async def _show_store(
     page: int = 1,
     category_id: int = 0,
 ) -> None:
-    """Render the paginated, plan-by-plan customer catalogue."""
-    result = await services.plans.store_page(
-        page, settings.store.plans_per_page, category_id or None
+    """Render every product in the paginated three-column Store grid."""
+    result = await services.products.storefront_page(
+        page, settings.store.products_per_page, category_id or None
     )
     category_name = None
     if category_id:
         category = await services.products.get_category(category_id)
         category_name = category.name
-    # Remember where the customer was so plan detail can return to this page.
+    # Remember where the customer was so product / plan details can return here.
     await state.update_data(
-        store_page=result.page, store_category=category_id, store_view="flat"
+        store_page=result.page, store_category=category_id, store_view="products"
     )
-    subscribed = {
-        plan.id
-        for plan in result.items
-        if plan.is_sold_out
-        and await services.notifications.is_subscribed(plan.id, user)
-    }
     await render(
         event,
-        texts.flat_store_page(result, category_name=category_name),
-        flat_store_keyboard(
+        texts.store_page(result, category_name=category_name),
+        storefront_keyboard(
             result,
+            columns=settings.store.product_grid_columns,
             category_id=category_id,
-            subscribed_plan_ids=subscribed,
+            # Categories still exist in the database for administration, but
+            # the customer Store intentionally never groups by category.
+            show_categories=False,
         ),
     )
 

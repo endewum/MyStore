@@ -181,7 +181,17 @@ async def test_change_price_returns_previous_value(
     assert plan.price == Decimal("19.99")
 
 
-async def test_plan_button_title_marks_featured(product: Product) -> None:
-    assert product.button_title == "🔥 ChatGPT"
-    product.is_featured = False
-    assert product.button_title == "ChatGPT"
+async def test_product_button_title_marks_availability_and_featured(
+    services: Services, product: Product, plan: Plan
+) -> None:
+    loaded = await services.products.get_with_plans(product.id)
+    assert loaded.button_title == "🟢 🔥 ChatGPT"
+    loaded.is_featured = False
+    assert loaded.button_title == "🟢 ChatGPT"
+
+
+async def test_product_without_plans_is_shown_out_of_stock() -> None:
+    product = Product(name="Empty", slug="empty", emoji="📦", plans=[])
+
+    assert product.is_available is False
+    assert product.button_title == "❌ Empty"

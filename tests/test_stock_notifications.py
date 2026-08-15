@@ -151,6 +151,30 @@ async def test_subscribe_only_allowed_for_sold_out_plans(
         await services.notifications.subscribe_stock_alert(plan, customer)
 
 
+async def test_product_alert_supports_products_without_any_plan(
+    services: Services, product, customer: User
+) -> None:
+    """Customers can wait even before the admin creates the first plan."""
+    alert = await services.notifications.subscribe_product_alert(product, customer)
+
+    assert alert.product_id == product.id
+    assert await services.notifications.is_product_subscribed(product.id, customer)
+    assert await services.notifications.product_waiting_count(product.id) == 1
+
+    removed = await services.notifications.unsubscribe_product_alert(product.id, customer)
+    assert removed is True
+    assert not await services.notifications.is_product_subscribed(product.id, customer)
+
+
+async def test_product_alert_is_rejected_when_a_product_is_available(
+    services: Services, product, plan: Plan, customer: User
+) -> None:
+    loaded = await services.products.get_with_plans(product.id)
+
+    with pytest.raises(ValidationError):
+        await services.notifications.subscribe_product_alert(loaded, customer)
+
+
 async def test_subscribe_is_idempotent(
     services: Services, sold_out_plan: Plan, customer: User
 ) -> None:

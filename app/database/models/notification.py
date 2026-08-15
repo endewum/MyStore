@@ -29,7 +29,7 @@ from app.database.models.types import enum_column
 from app.utils.time import utcnow
 
 if TYPE_CHECKING:
-    from app.database.models.catalog import Plan
+    from app.database.models.catalog import Plan, Product
     from app.database.models.user import User
 
 
@@ -120,6 +120,43 @@ class StockAlert(IntPrimaryKeyMixin, TimestampMixin, Base):
     notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     plan: Mapped["Plan"] = relationship(back_populates="stock_alerts")
+    user: Mapped["User"] = relationship()
+
+
+class ProductStockAlert(IntPrimaryKeyMixin, TimestampMixin, Base):
+    """A product-level waiting-list entry for products with no live plans.
+
+    Plan-level alerts are more precise once a product has offers. This separate
+    row lets a customer request a notification even when an admin has created
+    only the product shell and has not added the first plan yet.
+    """
+
+    __tablename__ = "product_stock_alerts"
+    __table_args__ = (
+        UniqueConstraint(
+            "product_id",
+            "user_id",
+            name="uq_product_stock_alerts_product_user",
+        ),
+        Index("ix_product_stock_alerts_product_status", "product_id", "status"),
+    )
+
+    product_id: Mapped[int] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[StockAlertStatus] = mapped_column(
+        enum_column(StockAlertStatus),
+        default=StockAlertStatus.WAITING,
+        nullable=False,
+        index=True,
+    )
+    notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    product: Mapped["Product"] = relationship()
     user: Mapped["User"] = relationship()
 
 

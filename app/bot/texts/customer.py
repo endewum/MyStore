@@ -106,6 +106,29 @@ def product_plans(product: Product, page: Page[Plan]) -> str:
     return "\n".join(lines)
 
 
+def product_sold_out(product: Product, *, subscribed: bool) -> str:
+    """Product-level empty-state shown before the admin adds a live plan."""
+    lines = [
+        header(f"{product.emoji} {product.name.upper()}"),
+        "",
+        "❌ <b>Out of Stock</b>",
+        "",
+        "There are no available plans for this product right now.",
+        "",
+    ]
+    if subscribed:
+        lines.append(
+            "🔔 You are on the waiting list. We will message you when this "
+            "product receives an available plan."
+        )
+    else:
+        lines.append(
+            "Tap <b>🔔 Notify Me</b> to get a message when this product is back "
+            "in stock."
+        )
+    return "\n".join(lines)
+
+
 def plan_confirmation(plan: Plan) -> str:
     """Order confirmation screen shown before an order is created."""
     lines = [

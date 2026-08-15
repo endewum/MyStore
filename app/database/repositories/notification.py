@@ -12,6 +12,7 @@ from app.database.models import (
     DeliveryState,
     Notification,
     NotificationRecipient,
+    ProductStockAlert,
     StockAlert,
     StockAlertStatus,
     User,
@@ -164,6 +165,56 @@ class StockAlertRepository(BaseRepository[StockAlert]):
                 StockAlert.plan_id == plan_id,
                 StockAlert.user_id.in_(list(user_ids)),
                 StockAlert.status == StockAlertStatus.WAITING,
+            )
+            .values(status=StockAlertStatus.NOTIFIED, notified_at=utcnow())
+        )
+
+
+class ProductStockAlertRepository(BaseRepository[ProductStockAlert]):
+    """Product-level waiting-list persistence."""
+
+    model = ProductStockAlert
+
+    async def get_for_user(
+        self, product_id: int, user_id: int
+    ) -> ProductStockAlert | None:
+        return await self.get_by(product_id=product_id, user_id=user_id)
+
+    async def waiting_users(self, product_id: int) -> Sequence[User]:
+        stmt = (
+            select(User)
+            .join(ProductStockAlert, ProductStockAlert.user_id == User.id)
+            .where(
+                ProductStockAlert.product_id == product_id,
+                ProductStockAlert.status == StockAlertStatus.WAITING,
+                User.is_active.is_(True),
+                User.has_blocked_bot.is_(False),
+                User.is_blocked.is_(False),
+            )
+            .distinct()
+        )
+        return list((await self.session.scalars(stmt)).all())
+
+    async def count_waiting(self, product_id: int) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(ProductStockAlert)
+            .where(
+                ProductStockAlert.product_id == product_id,
+                ProductStockAlert.status == StockAlertStatus.WAITING,
+            )
+        )
+        return int((await self.session.scalar(stmt)) or 0)
+
+    async def mark_notified(self, product_id: int, user_ids: Sequence[int]) -> None:
+        if not user_ids:
+            return
+        await self.session.execute(
+            update(ProductStockAlert)
+            .where(
+                ProductStockAlert.product_id == product_id,
+                ProductStockAlert.user_id.in_(list(user_ids)),
+                ProductStockAlert.status == StockAlertStatus.WAITING,
             )
             .values(status=StockAlertStatus.NOTIFIED, notified_at=utcnow())
         )

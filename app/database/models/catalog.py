@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    inspect,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -74,10 +75,32 @@ class Product(IntPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     @property
+    def active_plans(self) -> list["Plan"]:
+        """Plans that are currently enabled for this product."""
+        # Store queries eager-load plans. Other screens may hold a lightweight
+        # Product instance; never issue a surprise async lazy-load from a
+        # template/property in that case.
+        if "plans" in inspect(self).unloaded:
+            return []
+        return [plan for plan in self.plans if plan.is_active]
+
+    @property
+    def available_plans(self) -> list["Plan"]:
+        """Enabled plans with real sellable inventory/stock."""
+        return [plan for plan in self.active_plans if plan.available_quantity > 0]
+
+    @property
+    def is_available(self) -> bool:
+        """A product is purchasable only if at least one plan has stock."""
+        return bool(self.is_active and self.available_plans)
+
+    @property
     def button_title(self) -> str:
-        """Label used inside the storefront grid keyboard."""
+        """Status-first label used in the customer Store grid."""
+        if not self.is_available:
+            return f"❌ {self.name}"
         prefix = "🔥 " if self.is_featured else ""
-        return f"{prefix}{self.name}"
+        return f"🟢 {prefix}{self.name}"
 
     @property
     def title(self) -> str:
