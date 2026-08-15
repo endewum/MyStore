@@ -237,15 +237,3 @@ async def test_inactive_admin_loses_access(services: Services) -> None:
     admin.is_active = False
 
     assert await IsAdmin()(_callback(8009), admin=admin) is False
-
-
-def test_dispatcher_registers_all_routers(settings) -> None:
-    from app.bot.bootstrap import create_dispatcher
-    from app.database.session import Database
-
-    settings.db.url = "sqlite+aiosqlite:///:memory:"
-    dispatcher = create_dispatcher(settings, Database(settings.db))
-
-    names = {router.name for router in dispatcher.sub_routers[0].sub_routers}
-    assert "admin" in names
-    assert {"start", "store", "products", "plans", "orders", "payments"} <= names

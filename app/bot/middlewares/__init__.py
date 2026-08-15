@@ -17,6 +17,11 @@ def register_middlewares(
 ) -> None:
     """Install middlewares outermost-first for messages and callbacks.
 
+    They are registered as **outer** middlewares because filters
+    (``IsAdmin``) are evaluated before inner middlewares run: only outer
+    middlewares can put ``session``, ``user`` and ``admin`` into the handler
+    data early enough for authorization filters to see them.
+
     Order matters: errors are caught outside the transaction, throttling runs
     before any database work, and user resolution needs the session.
     """
@@ -27,8 +32,8 @@ def register_middlewares(
         UserMiddleware(),
     )
     for layer in layers:
-        dispatcher.message.middleware(layer)
-        dispatcher.callback_query.middleware(layer)
+        dispatcher.message.outer_middleware(layer)
+        dispatcher.callback_query.outer_middleware(layer)
 
 
 __all__ = [

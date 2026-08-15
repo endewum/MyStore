@@ -1,5 +1,5 @@
 """Custom aiogram filters."""
 
-from app.bot.filters.admin import AdminOnly, IsAdmin
+from app.bot.filters.admin import IsAdmin, has_access
 
-__all__ = ["AdminOnly", "IsAdmin"]
+__all__ = ["IsAdmin", "has_access"]

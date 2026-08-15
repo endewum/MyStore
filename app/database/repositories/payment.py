@@ -54,6 +54,7 @@ class PaymentRepository(BaseRepository[Payment]):
         stmt = (
             select(Payment)
             .where(Payment.order_id == order_id)
+            .options(selectinload(Payment.method))
             .order_by(Payment.id.desc())
             .limit(1)
         )

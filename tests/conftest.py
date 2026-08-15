@@ -8,10 +8,13 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from decimal import Decimal
 
 import pytest
 import pytest_asyncio
+from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 os.environ.setdefault("BOT_TOKEN", "123456:test-token")
@@ -31,12 +34,64 @@ from app.database.models import (  # noqa: E402
     Product,
     User,
 )
+from app.bot.bootstrap import create_dispatcher  # noqa: E402
+from app.database.session import Database  # noqa: E402
 from app.services.registry import Services  # noqa: E402
+from tests.fakes import FakeSession  # noqa: E402
 
 
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     return Settings(_env_file=None)  # type: ignore[call-arg]
+
+
+@dataclass(slots=True)
+class BotHarness:
+    """A live dispatcher wired to a throwaway database and a fake API session."""
+
+    bot: Bot
+    dispatcher: Dispatcher
+    database: Database
+    session: FakeSession
+    settings: Settings
+
+    async def reset(self) -> None:
+        """Recreate the schema and forget recorded API calls."""
+        async with self.database.engine.begin() as connection:
+            await connection.run_sync(Base.metadata.drop_all)
+            await connection.run_sync(Base.metadata.create_all)
+        await self.dispatcher.storage.close()
+        self.dispatcher.fsm.storage = MemoryStorage()
+        self.session.clear()
+
+    async def feed(self, update) -> None:
+        await self.dispatcher.feed_update(self.bot, update)
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def bot_harness(tmp_path_factory) -> AsyncIterator[BotHarness]:
+    """Session-scoped because handler routers can only be attached once.
+
+    aiogram routers are module-level singletons, so a process can build exactly
+    one dispatcher; integration tests share this one and reset the database
+    between cases.
+    """
+    db_path = tmp_path_factory.mktemp("bot") / "store.db"
+    harness_settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    harness_settings.db.url = f"sqlite+aiosqlite:///{db_path}"
+    harness_settings.security.rate_limit_enabled = False
+
+    database = Database(harness_settings.db)
+    fake_session = FakeSession()
+    bot = Bot(token="123456:test-token", session=fake_session)
+    dispatcher = create_dispatcher(harness_settings, database)
+
+    harness = BotHarness(bot, dispatcher, database, fake_session, harness_settings)
+    await harness.reset()
+    yield harness
+
+    await bot.session.close()
+    await database.dispose()
 
 
 @pytest_asyncio.fixture

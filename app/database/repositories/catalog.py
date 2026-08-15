@@ -24,7 +24,12 @@ class CategoryRepository(BaseRepository[Category]):
         return list((await self.session.scalars(stmt)).all())
 
     async def list_ordered(self) -> Sequence[Category]:
-        stmt = select(Category).order_by(Category.sort_order, Category.name)
+        """All categories with their products loaded, for admin screens."""
+        stmt = (
+            select(Category)
+            .options(selectinload(Category.products))
+            .order_by(Category.sort_order, Category.name)
+        )
         return list((await self.session.scalars(stmt)).all())
 
     async def get_by_slug(self, slug: str) -> Category | None:
