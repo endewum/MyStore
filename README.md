@@ -8,7 +8,7 @@ Payments are **manually verified by an administrator**. The bot never claims a
 payment was detected automatically.
 
 ```
-PRODUCT → PLANS → ORDER → MANUAL PAYMENT → ADMIN REVIEW → FULFILLMENT
+PLAN CATALOGUE → ORDER → MANUAL PAYMENT → ADMIN REVIEW → FULFILLMENT
 ADMIN ADDS STOCK → BACK-IN-STOCK DETECTED → PREVIEW → NOTIFY WAITING LIST / ALL
 ```
 
@@ -49,8 +49,9 @@ ChatGPT                                  Canva
 └── API 500M CODEX 30D — SOLD OUT        └── Canva Teams
 ```
 
-A customer picks a **product** from a 3-column grid, then a **plan**. Available
-plans can be bought; sold-out plans offer **🔔 Notify Me**. Checkout reserves
+A customer sees every **plan** directly in one compact full-width row, including
+its product, duration, price and availability — no product/category step is
+required. Available plans can be bought; sold-out plans offer **🔔 Notify Me**. Checkout reserves
 stock, the customer pays through an admin-configured channel (Binance / Bybit /
 USDT / anything else you add), submits a transaction reference or screenshot,
 and an administrator approves or rejects it by hand before fulfilling the order.
@@ -63,8 +64,8 @@ in-bot admin panel.
 
 **Storefront**
 
-- 3-column paginated product grid, featured products first (🔥)
-- Plan screen with per-plan status (🟢 available / 🔴 sold out), price, duration and stock
+- Plan-first, full-width paginated catalogue: product, duration, price and stock in every row
+- Plan screen with per-plan status (🟢 available / ❌ sold out), price, duration and stock
 - Category browsing and search across product names, plan names and categories
 - Order confirmation → payment method → instructions → evidence submission
 - Order history with pagination, notification inbox, personal waiting list
@@ -210,8 +211,7 @@ $EDITOR .env                           # set BOT_TOKEN, BOT_ADMIN_IDS, DB_URL
 | `WEBHOOK_ENABLED` |  | `false` | Serve webhooks instead of long polling |
 | `WEBHOOK_BASE_URL` / `WEBHOOK_PATH` / `WEBHOOK_SECRET` / `WEBHOOK_PORT` |  | — / `/telegram/webhook` / — / `8080` | Webhook configuration |
 | `STORE_NAME` / `STORE_CURRENCY` |  | `Digital Store` / `USD` | Branding |
-| `STORE_PRODUCTS_PER_PAGE` / `STORE_PRODUCT_GRID_COLUMNS` |  | `27` / `3` | Storefront grid |
-| `STORE_PLANS_PER_PAGE` / `STORE_ORDERS_PER_PAGE` / `STORE_NOTIFICATIONS_PER_PAGE` / `STORE_ADMIN_LIST_PAGE_SIZE` |  | `8` / `5` / `5` / `8` | Pagination |
+| `STORE_PLANS_PER_PAGE` / `STORE_ORDERS_PER_PAGE` / `STORE_NOTIFICATIONS_PER_PAGE` / `STORE_ADMIN_LIST_PAGE_SIZE` |  | `10` / `5` / `5` / `8` | Pagination |
 | `STORE_PAYMENT_TIMEOUT_MINUTES` |  | `60` | How long an unpaid order holds stock |
 | `STORE_BROADCAST_MESSAGES_PER_SECOND` / `STORE_BROADCAST_BATCH_SIZE` |  | `20` / `25` | Broadcast pacing |
 | `SECURITY_RATE_LIMIT_ENABLED` / `SECURITY_RATE_LIMIT_INTERVAL` / `SECURITY_RATE_LIMIT_BURST` |  | `true` / `0.45` / `5` | Anti-flood |
@@ -432,7 +432,7 @@ order ownership and invalid callback data.
 synthetic Telegram updates and a fake API session, so middlewares, filters, FSM
 states and keyboards are exercised end to end:
 
-- `/start` → store grid → product → plan → order → payment method → evidence submitted → admin review card
+- `/start` → plan catalogue → order → payment method → evidence submitted → admin review card
 - admin confirms → `PAID` → manual fulfilment → customer receives the delivery
 - admin rejects with a reason → customer can resubmit, stock stays reserved
 - 🔔 Notify Me on a sold-out plan → admin restocks → preview → waiting list notified (and nothing is sent before the admin chooses)

@@ -67,6 +67,68 @@ def storefront_keyboard(
     return builder.as_markup()
 
 
+def flat_store_keyboard(
+    page: Page[Plan],
+    *,
+    category_id: int = 0,
+    subscribed_plan_ids: set[int] | None = None,
+) -> InlineKeyboardMarkup:
+    """Flat plan catalogue inspired by the supplied reference layout.
+
+    Each full-width row is a standalone offer: product, plan, duration, price
+    and availability are visible without first entering a product category.
+    Telegram owns the visual button colour, so emoji carry availability state.
+    """
+    subscribed = subscribed_plan_ids or set()
+    builder = InlineKeyboardBuilder()
+    for plan in page.items:
+        product = plan.product
+        featured = "🔥 " if plan.is_featured or product.is_featured else ""
+        duration = f" · {plan.duration}" if plan.duration else ""
+        if plan.is_purchasable:
+            status = f"{plan.available_quantity} left"
+            icon = "🟢"
+            callback = PlanCB(action="view", plan_id=plan.id, page=page.page).pack()
+        elif plan.id in subscribed:
+            status = "waiting"
+            icon = "🔔"
+            callback = PlanCB(
+                action="unnotify", plan_id=plan.id, page=page.page
+            ).pack()
+        else:
+            status = "sold out"
+            icon = "❌"
+            callback = PlanCB(action="notify", plan_id=plan.id, page=page.page).pack()
+
+        label = (
+            f"{icon} {featured}{product.emoji} {product.name} — {plan.name}"
+            f"{duration} · {plan.price_display} ({status})"
+        )
+        builder.row(
+            InlineKeyboardButton(text=truncate(label, 64), callback_data=callback)
+        )
+
+    nav = pagination_row(
+        page,
+        lambda target: StoreCB(page=target, category=category_id).pack(),
+        label=f"Page {page.label}",
+    )
+    if nav:
+        builder.row(*nav)
+    builder.row(
+        InlineKeyboardButton(
+            text="📌 Refresh",
+            callback_data=StoreCB(page=page.page, category=category_id).pack(),
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="🏠 Home", callback_data=MenuCB(action="home").pack()
+        )
+    )
+    return builder.as_markup()
+
+
 def categories_keyboard(categories: Sequence[Category]) -> InlineKeyboardMarkup:
     """One category per row, plus an "all products" shortcut."""
     builder = InlineKeyboardBuilder()
@@ -120,7 +182,9 @@ def plans_keyboard(
     return builder.as_markup()
 
 
-def plan_detail_keyboard(plan: Plan, *, plans_page: int = 1) -> InlineKeyboardMarkup:
+def plan_detail_keyboard(
+    plan: Plan, *, plans_page: int = 1, back_callback: str | None = None
+) -> InlineKeyboardMarkup:
     """Confirmation screen for a purchasable plan."""
     builder = InlineKeyboardBuilder()
     builder.row(
@@ -132,13 +196,20 @@ def plan_detail_keyboard(plan: Plan, *, plans_page: int = 1) -> InlineKeyboardMa
     builder.row(
         InlineKeyboardButton(
             text="❌ Cancel",
-            callback_data=ProductCB(product_id=plan.product_id, page=plans_page).pack(),
+            callback_data=back_callback
+            or ProductCB(product_id=plan.product_id, page=plans_page).pack(),
         )
     )
     return builder.as_markup()
 
 
-def sold_out_keyboard(plan: Plan, *, subscribed: bool, plans_page: int = 1) -> InlineKeyboardMarkup:
+def sold_out_keyboard(
+    plan: Plan,
+    *,
+    subscribed: bool,
+    plans_page: int = 1,
+    back_callback: str | None = None,
+) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     if subscribed:
         builder.row(
@@ -159,7 +230,9 @@ def sold_out_keyboard(plan: Plan, *, subscribed: bool, plans_page: int = 1) -> I
             )
         )
     builder.row(
-        *back_home_row(ProductCB(product_id=plan.product_id, page=plans_page).pack())
+        *back_home_row(
+            back_callback or ProductCB(product_id=plan.product_id, page=plans_page).pack()
+        )
     )
     return builder.as_markup()
 

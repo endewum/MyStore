@@ -112,6 +112,38 @@ class ProductRepository(BaseRepository[Product]):
 class PlanRepository(BaseRepository[Plan]):
     model = Plan
 
+    def _storefront_stmt(
+        self, category_id: int | None = None
+    ) -> Select[tuple[Plan]]:
+        """All customer-visible plans, independently listed in the store.
+
+        The storefront deliberately lists plans rather than product groups. A
+        plan remains related to its product for fulfilment and administration,
+        while customers can open the exact offer they want in a single tap.
+        """
+        stmt = (
+            select(Plan)
+            .join(Product, Plan.product_id == Product.id)
+            .where(Plan.is_active.is_(True), Product.is_active.is_(True))
+            .options(selectinload(Plan.product))
+        )
+        if category_id:
+            stmt = stmt.where(Product.category_id == category_id)
+        return stmt.order_by(
+            Plan.is_featured.desc(),
+            Product.is_featured.desc(),
+            Product.sort_order,
+            Plan.sort_order,
+            Product.name,
+            Plan.name,
+        )
+
+    async def paginate_storefront(
+        self, page: int, per_page: int, category_id: int | None = None
+    ) -> Page[Plan]:
+        """Return the flat, customer-facing catalogue of individual plans."""
+        return await self.paginate(self._storefront_stmt(category_id), page, per_page)
+
     async def get_with_product(self, plan_id: int) -> Plan | None:
         stmt = (
             select(Plan)

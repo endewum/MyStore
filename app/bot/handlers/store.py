@@ -12,12 +12,13 @@ from app.bot.handlers.helpers import answer_callback, render
 from app.bot.keyboards.common import BTN_SEARCH, BTN_STORE, navigation_keyboard
 from app.bot.keyboards.store import (
     categories_keyboard,
+    flat_store_keyboard,
     search_results_keyboard,
-    storefront_keyboard,
 )
 from app.bot.states import SearchStates
 from app.bot.texts import customer as texts
 from app.config import Settings
+from app.database.models import User
 from app.services.exceptions import ValidationError
 from app.services.registry import Services
 
@@ -27,29 +28,38 @@ router = Router(name="store")
 async def _show_store(
     event: Message | CallbackQuery,
     state: FSMContext,
+    user: User,
     services: Services,
     settings: Settings,
     *,
     page: int = 1,
     category_id: int = 0,
 ) -> None:
-    """Render the paginated 3-column product grid."""
-    result = await services.products.storefront_page(
-        page, settings.store.products_per_page, category_id or None
+    """Render the paginated, plan-by-plan customer catalogue."""
+    result = await services.plans.store_page(
+        page, settings.store.plans_per_page, category_id or None
     )
     category_name = None
     if category_id:
         category = await services.products.get_category(category_id)
         category_name = category.name
-    # Remember where the customer was so "Back" returns to the same grid page.
-    await state.update_data(store_page=result.page, store_category=category_id)
+    # Remember where the customer was so plan detail can return to this page.
+    await state.update_data(
+        store_page=result.page, store_category=category_id, store_view="flat"
+    )
+    subscribed = {
+        plan.id
+        for plan in result.items
+        if plan.is_sold_out
+        and await services.notifications.is_subscribed(plan.id, user)
+    }
     await render(
         event,
-        texts.store_page(result, category_name=category_name),
-        storefront_keyboard(
+        texts.flat_store_page(result, category_name=category_name),
+        flat_store_keyboard(
             result,
-            columns=settings.store.product_grid_columns,
             category_id=category_id,
+            subscribed_plan_ids=subscribed,
         ),
     )
 
@@ -57,18 +67,26 @@ async def _show_store(
 @router.message(Command("store"))
 @router.message(F.text == BTN_STORE)
 async def cmd_store(
-    message: Message, state: FSMContext, services: Services, settings: Settings
+    message: Message,
+    state: FSMContext,
+    user: User,
+    services: Services,
+    settings: Settings,
 ) -> None:
     await state.clear()
-    await _show_store(message, state, services, settings)
+    await _show_store(message, state, user, services, settings)
 
 
 @router.callback_query(MenuCB.filter(F.action == "store"))
 async def open_store(
-    callback: CallbackQuery, state: FSMContext, services: Services, settings: Settings
+    callback: CallbackQuery,
+    state: FSMContext,
+    user: User,
+    services: Services,
+    settings: Settings,
 ) -> None:
     await state.clear()
-    await _show_store(callback, state, services, settings)
+    await _show_store(callback, state, user, services, settings)
 
 
 @router.callback_query(StoreCB.filter())
@@ -76,12 +94,14 @@ async def paginate_store(
     callback: CallbackQuery,
     callback_data: StoreCB,
     state: FSMContext,
+    user: User,
     services: Services,
     settings: Settings,
 ) -> None:
     await _show_store(
         callback,
         state,
+        user,
         services,
         settings,
         page=callback_data.page,

@@ -21,7 +21,11 @@ from app.bot.callbacks import (
 )
 from app.bot.filters import IsAdmin
 from app.bot.keyboards.common import home_keyboard, pagination_row
-from app.bot.keyboards.store import plans_keyboard, storefront_keyboard
+from app.bot.keyboards.store import (
+    flat_store_keyboard,
+    plans_keyboard,
+    storefront_keyboard,
+)
 from app.bot.texts import customer as customer_texts
 from app.database.models import AdminRole, Plan, Product
 from app.services.registry import Services
@@ -128,6 +132,30 @@ def test_sold_out_plan_gets_notify_button(
     assert PlanCB(action="notify", plan_id=sold_out_plan.id, page=1).pack() in callbacks
 
 
+def test_flat_store_lists_each_plan_as_a_full_width_offer(
+    product: Product, plan: Plan, sold_out_plan: Plan
+) -> None:
+    """The main Store is plan-first, matching the requested reference layout."""
+    sold_out_plan.product = product
+    page = Page(items=[plan, sold_out_plan], page=1, per_page=10, total=2)
+
+    markup = flat_store_keyboard(page)
+    labels = [button.text for row in markup.inline_keyboard for button in row]
+    callbacks = [
+        button.callback_data
+        for row in markup.inline_keyboard
+        for button in row
+        if button.callback_data
+    ]
+
+    assert any("ChatGPT" in label and "5 left" in label for label in labels)
+    assert any("GPT PLUS 30D" in label and "sold out" in label for label in labels)
+    assert "📌 Refresh" in labels
+    assert "🏠 Home" in labels
+    assert PlanCB(action="view", plan_id=plan.id, page=1).pack() in callbacks
+    assert PlanCB(action="notify", plan_id=sold_out_plan.id, page=1).pack() in callbacks
+
+
 def test_subscribed_plan_offers_to_stop_waiting(
     product: Product, sold_out_plan: Plan
 ) -> None:
@@ -169,6 +197,16 @@ def test_plan_screen_shows_stock_and_price(product: Product, plan: Plan, sold_ou
     assert "5 available" in text
     assert "❌ Sold Out" in text
     assert "🟢" in text and "🔴" in text
+
+
+def test_flat_store_header_is_compact(product: Product, plan: Plan) -> None:
+    page = Page(items=[plan], page=1, per_page=10, total=1)
+
+    text = customer_texts.flat_store_page(page)
+
+    assert "STORE" in text
+    assert "1 offer(s)" in text
+    assert "Available" in text
 
 
 def test_order_confirmation_states_manual_review(plan: Plan) -> None:

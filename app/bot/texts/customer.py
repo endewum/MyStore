@@ -54,6 +54,24 @@ def store_page(page: Page[Product], *, category_name: str | None = None) -> str:
     )
 
 
+def flat_store_page(page: Page[Plan], *, category_name: str | None = None) -> str:
+    """Compact header for the flat, plan-by-plan Store catalogue."""
+    if page.is_empty:
+        scope = f" in {esc(category_name)}" if category_name else ""
+        return (
+            f"{header('🛍 STORE')}\n\n"
+            f"No plans are available{scope} right now.\n"
+            "Please refresh later."
+        )
+
+    scope = f" · {esc(category_name)}" if category_name else ""
+    return (
+        f"🛍 <b>STORE{scope}</b>\n"
+        f"Select a plan below · {page.total} offer(s) · Page {page.label}\n\n"
+        "🟢 Available  •  ❌ Sold out  •  🔔 Waiting list"
+    )
+
+
 def categories(total: int) -> str:
     return (
         f"{header('🗂 CATEGORIES')}\n\n"

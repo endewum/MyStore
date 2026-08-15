@@ -109,7 +109,8 @@ class StoreSettings(BaseSettings):
     #: Storefront grid: 3 columns x 9 rows == 27 products per page.
     products_per_page: int = 27
     product_grid_columns: int = 3
-    plans_per_page: int = 8
+    #: Full-width plan rows in the flat Store catalogue.
+    plans_per_page: int = 10
     orders_per_page: int = 5
     notifications_per_page: int = 5
     admin_list_page_size: int = 8

@@ -46,6 +46,12 @@ class PlanService:
     ) -> Page[Plan]:
         return await self.plans.paginate_for_product(product_id, page, per_page)
 
+    async def store_page(
+        self, page: int, per_page: int, category_id: int | None = None
+    ) -> Page[Plan]:
+        """Plans shown independently on the customer Store screen."""
+        return await self.plans.paginate_storefront(page, per_page, category_id)
+
     async def admin_page(self, product_id: int, page: int, per_page: int) -> Page[Plan]:
         return await self.plans.paginate_admin(product_id, page, per_page)
 
