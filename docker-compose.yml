@@ -1,0 +1,64 @@
+name: telegram-store
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-telegram_store}
+      MYSQL_USER: ${MYSQL_USER:-store}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-store}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Optional: only used when REDIS_ENABLED=true.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    profiles: ["redis"]
+
+  migrate:
+    build: .
+    env_file: .env
+    environment:
+      DB_URL: mysql+aiomysql://${MYSQL_USER:-store}:${MYSQL_PASSWORD:-store}@mysql:3306/${MYSQL_DATABASE:-telegram_store}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_URL: mysql+aiomysql://${MYSQL_USER:-store}:${MYSQL_PASSWORD:-store}@mysql:3306/${MYSQL_DATABASE:-telegram_store}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      mysql:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      # Only needed in webhook mode.
+      - "${WEBHOOK_PORT:-8080}:8080"
+
+volumes:
+  mysql_data:
+  redis_data:

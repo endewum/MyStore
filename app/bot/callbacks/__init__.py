@@ -1,0 +1,53 @@
+"""Structured callback data factories (aiogram ``CallbackData``)."""
+
+from app.bot.callbacks.admin import (
+    AdminBroadcastCB,
+    AdminCB,
+    AdminOrderCB,
+    AdminPaymentCB,
+    AdminPlanCB,
+    AdminProductCB,
+    AdminSettingCB,
+    AdminStockCB,
+    AdminStockNotifyCB,
+    AdminUserCB,
+)
+from app.bot.callbacks.store import (
+    AccountCB,
+    CategoryCB,
+    ConfirmCB,
+    MenuCB,
+    NoopCB,
+    NotifyCB,
+    OrderCB,
+    PayCB,
+    PlanCB,
+    ProductCB,
+    SearchCB,
+    StoreCB,
+)
+
+__all__ = [
+    "AccountCB",
+    "AdminBroadcastCB",
+    "AdminCB",
+    "AdminOrderCB",
+    "AdminPaymentCB",
+    "AdminPlanCB",
+    "AdminProductCB",
+    "AdminSettingCB",
+    "AdminStockCB",
+    "AdminStockNotifyCB",
+    "AdminUserCB",
+    "CategoryCB",
+    "ConfirmCB",
+    "MenuCB",
+    "NoopCB",
+    "NotifyCB",
+    "OrderCB",
+    "PayCB",
+    "PlanCB",
+    "ProductCB",
+    "SearchCB",
+    "StoreCB",
+]

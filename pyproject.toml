@@ -1,0 +1,27 @@
+[tool.ruff]
+line-length = 90
+target-version = "py312"
+exclude = ["app/database/migrations/versions", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
+ignore = [
+    # Long lines inside message templates are intentional.
+    "E501",
+    # aiogram handlers legitimately take many keyword arguments.
+    "B008",
+    # Emoji and currency symbols in UI strings are deliberate.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # SQLAlchemy's Mapped[Optional[X]] style is the documented form.
+    "UP045",
+    "UP037",
+    "UP046",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "scripts", "tests"]
