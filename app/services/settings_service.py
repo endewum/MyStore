@@ -107,7 +107,7 @@ class SettingsService:
             await self.logs.log(
                 admin.telegram_id,
                 AdminAction.ADMIN_UPDATED_SETTINGS,
-                admin_username=admin.user.username if admin.user else None,
+                admin_username=admin.username,
                 target_type="setting",
                 target_id=setting.id,
                 description=f"{key} = {value[:120]}",
@@ -166,7 +166,7 @@ class SettingsService:
         await self.logs.log(
             admin.telegram_id,
             AdminAction.ADMIN_CREATED_COUPON,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="coupon",
             target_id=coupon.id,
             description=f"{normalized} ({type.value} {value})",
@@ -179,7 +179,7 @@ class SettingsService:
         await self.logs.log(
             admin.telegram_id,
             AdminAction.ADMIN_UPDATED_COUPON,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="coupon",
             target_id=coupon.id,
             description=f"{coupon.code} active={coupon.is_active}",

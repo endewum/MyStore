@@ -537,7 +537,7 @@ def admins_list(admins: Sequence[Admin]) -> str:
         lines.append("No administrators configured.")
         return "\n".join(lines)
     for admin in admins:
-        name = admin.user.display_name if admin.user else str(admin.telegram_id)
+        name = admin.display_name
         lines.append(f"🛡 <b>{esc(name)}</b> — {esc(admin.role.value)}")
         lines.append(f"<code>{admin.telegram_id}</code>")
         lines.append("")

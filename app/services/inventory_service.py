@@ -362,7 +362,7 @@ class InventoryService:
         await self.logs.log(
             admin.telegram_id,
             action,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="plan",
             target_id=plan.id,
             description=f"{plan.name}: {description}",

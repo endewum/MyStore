@@ -27,7 +27,6 @@ from app.database.repositories import (
     AdminLogRepository,
     CouponRepository,
     OrderHistoryRepository,
-    OrderItemRepository,
     OrderRepository,
     UserRepository,
 )
@@ -93,7 +92,6 @@ class OrderService:
         self.session = session
         self.store = store
         self.orders = OrderRepository(session)
-        self.items = OrderItemRepository(session)
         self.history = OrderHistoryRepository(session)
         self.coupons = CouponRepository(session)
         self.users = UserRepository(session)
@@ -175,21 +173,21 @@ class OrderService:
             coupon_code=coupon.code if coupon else None,
             expires_at=in_minutes(self.store.payment_timeout_minutes),
         )
-        await self.orders.add(order)
-
-        item = OrderItem(
-            order_id=order.id,
-            plan_id=plan.id,
-            product_id=plan.product_id,
-            product_name=plan.product.name,
-            plan_name=plan.name,
-            duration=plan.duration,
-            unit_price=plan.price,
-            quantity=1,
-            delivery_type=plan.delivery_type.value,
+        # Build the line item while the order is still transient: appending to
+        # a pending collection avoids a lazy load, and the insert cascades.
+        order.items.append(
+            OrderItem(
+                plan_id=plan.id,
+                product_id=plan.product_id,
+                product_name=plan.product.name,
+                plan_name=plan.name,
+                duration=plan.duration,
+                unit_price=plan.price,
+                quantity=1,
+                delivery_type=plan.delivery_type.value,
+            )
         )
-        await self.items.add(item)
-        order.items.append(item)
+        await self.orders.add(order)
 
         # Reserve after the order exists so inventory rows can reference it.
         await self.inventory.reserve_for_order(plan, order)
@@ -366,7 +364,7 @@ class OrderService:
         await self.logs.log(
             admin.telegram_id,
             action,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="order",
             target_id=order.id,
             description=description or f"Order #{order.order_number}",

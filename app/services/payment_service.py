@@ -100,7 +100,7 @@ class PaymentService:
             await self.logs.log(
                 admin.telegram_id,
                 AdminAction.ADMIN_UPDATED_PAYMENT_METHOD,
-                admin_username=admin.user.username if admin.user else None,
+                admin_username=admin.username,
                 target_type="payment_method",
                 target_id=method.id,
                 description=f"{method.name}: {', '.join(sorted(fields))}",
@@ -241,7 +241,7 @@ class PaymentService:
         await self.logs.log(
             admin.telegram_id,
             AdminAction.ADMIN_CONFIRMED_PAYMENT,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="payment",
             target_id=payment.id,
             description=f"Order #{order.order_number} — {payment.amount_display}",
@@ -272,7 +272,7 @@ class PaymentService:
         await self.logs.log(
             admin.telegram_id,
             AdminAction.ADMIN_REJECTED_PAYMENT,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="payment",
             target_id=payment.id,
             description=f"Order #{order.order_number}: {reason or 'no reason given'}",

@@ -265,7 +265,7 @@ class NotificationService:
             await self.logs.log(
                 admin.telegram_id,
                 AdminAction.ADMIN_SENT_STOCK_NOTIFICATION,
-                admin_username=admin.user.username if admin.user else None,
+                admin_username=admin.username,
                 target_type="plan",
                 target_id=plan.id,
                 description=(

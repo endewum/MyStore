@@ -5,7 +5,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, String, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    func,
+    inspect,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.models.base import Base, IntPrimaryKeyMixin, TimestampMixin
@@ -98,3 +107,20 @@ class Admin(IntPrimaryKeyMixin, TimestampMixin, Base):
 
     def has_role(self, required: AdminRole) -> bool:
         return self.is_active and self.role.covers(required)
+
+    @property
+    def username(self) -> Optional[str]:
+        """Username of the linked user for audit entries.
+
+        Returns ``None`` instead of emitting a lazy load when the relationship
+        was not eagerly fetched — audit logging must never trigger extra IO.
+        """
+        if "user" in inspect(self).unloaded:
+            return None
+        return self.user.username if self.user else None
+
+    @property
+    def display_name(self) -> str:
+        if "user" in inspect(self).unloaded or self.user is None:
+            return f"ID {self.telegram_id}"
+        return self.user.display_name

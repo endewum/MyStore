@@ -174,7 +174,7 @@ async def view_admin(
     if target is None:
         await answer_callback(callback, "That administrator was not found.", alert=True)
         return
-    name = target.user.display_name if target.user else str(target.telegram_id)
+    name = target.display_name
     await render(
         callback,
         f"🛡 <b>{name}</b>\n\n"

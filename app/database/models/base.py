@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, MetaData, func
+from sqlalchemy import BigInteger, DateTime, Integer, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+#: SQLite only auto-increments ``INTEGER PRIMARY KEY`` columns, so the surrogate
+#: key renders as BIGINT on MySQL and INTEGER on SQLite (used by the tests).
+PrimaryKeyType = BigInteger().with_variant(Integer, "sqlite")
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -27,7 +31,9 @@ class Base(DeclarativeBase):
 
 
 class IntPrimaryKeyMixin:
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        PrimaryKeyType, primary_key=True, autoincrement=True
+    )
 
 
 class TimestampMixin:

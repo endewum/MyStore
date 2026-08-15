@@ -70,7 +70,7 @@ def user_detail_keyboard(user: User, *, page: int = 1) -> InlineKeyboardMarkup:
 def admins_keyboard(admins: Sequence[Admin]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for admin in admins:
-        name = admin.user.display_name if admin.user else str(admin.telegram_id)
+        name = admin.display_name
         builder.row(
             InlineKeyboardButton(
                 text=truncate(f"🛡 {name} · {admin.role.value}", 34),

@@ -244,7 +244,7 @@ class ProductService:
         await self.logs.log(
             admin.telegram_id,
             action,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="product",
             target_id=target_id,
             description=description,

@@ -116,7 +116,7 @@ class BroadcastService:
         await self.logs.log(
             admin.telegram_id,
             AdminAction.ADMIN_SENT_BROADCAST,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="broadcast",
             target_id=broadcast.id,
             description=(

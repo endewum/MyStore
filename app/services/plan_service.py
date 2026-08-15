@@ -175,7 +175,7 @@ class PlanService:
             await self.logs.log(
                 admin.telegram_id,
                 AdminAction.ADMIN_DELETED_PLAN,
-                admin_username=admin.user.username if admin.user else None,
+                admin_username=admin.username,
                 target_type="plan",
                 target_id=plan_id,
                 description=name,
@@ -192,7 +192,7 @@ class PlanService:
         await self.logs.log(
             admin.telegram_id,
             action,
-            admin_username=admin.user.username if admin.user else None,
+            admin_username=admin.username,
             target_type="plan",
             target_id=plan.id,
             description=description,
