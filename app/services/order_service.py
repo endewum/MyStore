@@ -134,6 +134,17 @@ class OrderService:
     ) -> Page[Order]:
         return await self.orders.paginate_by_status(statuses, page, per_page)
 
+    async def count_open_for_user(self, user: User) -> int:
+        """Orders where the customer still has something to do."""
+        return await self.orders.count_for_user(
+            user.id,
+            [
+                OrderStatus.PENDING_PAYMENT,
+                OrderStatus.PAYMENT_SUBMITTED,
+                OrderStatus.PAYMENT_REJECTED,
+            ],
+        )
+
     # ---------------------------------------------------------------- creation
     async def create_order(
         self, user: User, plan: Plan, *, coupon_code: str | None = None

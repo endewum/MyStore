@@ -81,6 +81,12 @@ class InventoryService:
     ) -> Page[InventoryItem]:
         return await self.items.paginate_for_plan(plan_id, page, per_page)
 
+    async def low_stock_page(
+        self, page: int, per_page: int, threshold: int = 0
+    ) -> Page[Plan]:
+        """Active plans at or below ``threshold`` sellable units."""
+        return await self.plans.paginate_low_stock(page, per_page, threshold)
+
     async def items_for_order(self, order_id: int) -> Sequence[InventoryItem]:
         return await self.items.list_for_order(order_id)
 

@@ -65,6 +65,16 @@ class OrderRepository(BaseRepository[Order]):
             stmt = stmt.where(Order.status.in_(list(statuses)))
         return await self.paginate(stmt, page, per_page)
 
+    async def count_for_user(
+        self, user_id: int, statuses: Sequence[OrderStatus]
+    ) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(Order)
+            .where(Order.user_id == user_id, Order.status.in_(list(statuses)))
+        )
+        return int((await self.session.scalar(stmt)) or 0)
+
     async def count_by_status(self, statuses: Sequence[OrderStatus]) -> int:
         stmt = (
             select(func.count())
