@@ -21,23 +21,23 @@ os.environ.setdefault("BOT_TOKEN", "123456:test-token")
 os.environ.setdefault("DB_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("SECURITY_RATE_LIMIT_ENABLED", "false")
 
-from app.config import Settings  # noqa: E402
-from app.database.models import (  # noqa: E402
+from app.bot.bootstrap import create_dispatcher
+from app.config import Settings
+from app.database.models import (
     AdminRole,
     Base,
     Category,
     DeliveryType,
     InventoryItem,
     InventoryStatus,
-    Plan,
     PaymentMethod,
+    Plan,
     Product,
     User,
 )
-from app.bot.bootstrap import create_dispatcher  # noqa: E402
-from app.database.session import Database  # noqa: E402
-from app.services.registry import Services  # noqa: E402
-from tests.fakes import FakeSession  # noqa: E402
+from app.database.session import Database
+from app.services.registry import Services
+from tests.fakes import FakeSession
 
 
 @pytest.fixture(scope="session")

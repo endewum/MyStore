@@ -12,7 +12,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.callbacks import PayCB
-from app.bot.handlers.helpers import answer_callback, render
+from app.bot.handlers.helpers import render
 from app.bot.keyboards.admin.orders import payment_review_keyboard
 from app.bot.keyboards.orders import (
     order_detail_keyboard,

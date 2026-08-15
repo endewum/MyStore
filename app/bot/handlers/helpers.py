@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
@@ -47,10 +49,10 @@ async def answer_callback(
     event: CallbackQuery, text: str | None = None, *, alert: bool = False
 ) -> None:
     """Acknowledge a callback query, ignoring expired-query errors."""
-    try:
+    # A query older than ~15 minutes can no longer be answered; that is not a
+    # failure worth surfacing to the user.
+    with contextlib.suppress(TelegramBadRequest):
         await event.answer(text or None, show_alert=alert)
-    except TelegramBadRequest:
-        pass
 
 
 def target_message(event: Message | CallbackQuery) -> Message | None:

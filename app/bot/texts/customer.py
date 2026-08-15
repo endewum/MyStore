@@ -6,7 +6,7 @@ feels consistent. All dynamic values are HTML-escaped.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from app.database.models import (
     InventoryItem,
@@ -21,8 +21,7 @@ from app.database.models import (
 from app.database.models.notification import NotificationRecipient
 from app.utils.pagination import Page
 from app.utils.text import DIVIDER, esc, money
-from app.utils.time import format_dt, humanize_timedelta
-from app.utils.time import utcnow
+from app.utils.time import format_dt, humanize_timedelta, utcnow
 
 
 def header(title: str) -> str:

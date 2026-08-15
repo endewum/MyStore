@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
-from typing import Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload

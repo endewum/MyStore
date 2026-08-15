@@ -66,8 +66,13 @@ async def start_purchase(
         return
 
     plan = await services.plans.get_purchasable(callback_data.plan_id)
+    timeout = await services.store_settings.get_int(
+        "payment_timeout_minutes", settings.store.payment_timeout_minutes
+    )
     try:
-        order = await services.orders.create_order(user, plan)
+        order = await services.orders.create_order(
+            user, plan, expires_in_minutes=timeout
+        )
     except OutOfStockError:
         # Someone else took the last unit while this screen was open.
         subscribed = await services.notifications.is_subscribed(plan.id, user)

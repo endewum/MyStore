@@ -7,6 +7,7 @@ and the user gets a generic apology instead of a silent failure.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -62,7 +63,5 @@ class ErrorMiddleware(BaseMiddleware):
             logger.warning("error_notice.failed")
 
     async def _safe_answer(self, event: CallbackQuery) -> None:
-        try:
+        with contextlib.suppress(Exception):  # pragma: no cover
             await event.answer()
-        except Exception:  # pragma: no cover
-            pass

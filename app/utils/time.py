@@ -6,12 +6,12 @@ MySQL (``DATETIME``) and SQLite.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 
 def utcnow() -> datetime:
     """Current UTC time as a naive ``datetime``."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def in_minutes(minutes: int) -> datetime:

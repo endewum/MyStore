@@ -7,8 +7,8 @@ directly.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
-from typing import Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -145,9 +145,18 @@ class OrderService:
 
     # ---------------------------------------------------------------- creation
     async def create_order(
-        self, user: User, plan: Plan, *, coupon_code: str | None = None
+        self,
+        user: User,
+        plan: Plan,
+        *,
+        coupon_code: str | None = None,
+        expires_in_minutes: int | None = None,
     ) -> Order:
-        """Create a PENDING_PAYMENT order and reserve one unit of stock."""
+        """Create a PENDING_PAYMENT order and reserve one unit of stock.
+
+        ``expires_in_minutes`` lets the caller apply the admin-configured
+        payment window; it falls back to the value from the environment.
+        """
         if user.is_blocked:
             raise PermissionDeniedError("Your account cannot place orders.")
         if not plan.is_active or not plan.product.is_active:
@@ -171,7 +180,9 @@ class OrderService:
             currency=plan.currency,
             coupon_id=coupon.id if coupon else None,
             coupon_code=coupon.code if coupon else None,
-            expires_at=in_minutes(self.store.payment_timeout_minutes),
+            expires_at=in_minutes(
+                expires_in_minutes or self.store.payment_timeout_minutes
+            ),
         )
         # Build the line item while the order is still transient: appending to
         # a pending collection avoids a lazy load, and the insert cascades.

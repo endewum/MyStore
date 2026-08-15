@@ -7,8 +7,8 @@ approves or rejects it by hand.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
-from typing import Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

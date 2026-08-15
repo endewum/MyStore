@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from aiogram.types import User as TelegramUser
 from sqlalchemy.exc import IntegrityError

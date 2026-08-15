@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
 
 from app.database.models import (
     Admin,
@@ -507,7 +507,7 @@ def user_detail(user: User, stats: dict[str, int], admin: Admin | None) -> str:
         "",
         f"<b>Telegram ID</b>\n<code>{user.telegram_id}</code>",
         "",
-        f"<b>Status</b>\n"
+        "<b>Status</b>\n"
         + (
             "🚫 Blocked"
             if user.is_blocked

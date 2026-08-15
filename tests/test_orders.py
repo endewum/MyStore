@@ -261,8 +261,9 @@ async def test_refund_releases_stock_after_delivery(
 async def test_expired_pending_orders_are_cancelled(
     services: Services, customer: User, plan: Plan
 ) -> None:
-    from app.utils.time import utcnow
     from datetime import timedelta
+
+    from app.utils.time import utcnow
 
     order = await services.orders.create_order(customer, plan)
     order.expires_at = utcnow() - timedelta(minutes=5)

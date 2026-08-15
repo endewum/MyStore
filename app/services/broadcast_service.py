@@ -9,8 +9,7 @@ progress is persisted so the admin can watch it live.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
-from typing import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 
 from aiogram.types import InlineKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession

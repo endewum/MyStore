@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from sqlalchemy import func, select
 
@@ -64,7 +64,7 @@ class InventoryRepository(BaseRepository[InventoryItem]):
             .group_by(InventoryItem.status)
         )
         rows = await self.session.execute(stmt)
-        breakdown = {status: 0 for status in InventoryStatus}
+        breakdown = dict.fromkeys(InventoryStatus, 0)
         for status, count in rows.all():
             breakdown[InventoryStatus(status)] = int(count)
         return breakdown
