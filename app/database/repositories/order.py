@@ -9,7 +9,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.database.models import (
-    ORDER_NUMBER_OFFSET,
     Order,
     OrderItem,
     OrderStatus,
@@ -40,11 +39,6 @@ class OrderRepository(BaseRepository[Order]):
             .limit(1)
         )
         return (await self.session.scalars(stmt)).first()
-
-    async def next_order_number(self) -> str:
-        """Sequential, human friendly order number starting at #10001."""
-        current = await self.session.scalar(select(func.max(Order.id)))
-        return str(int(current or 0) + 1 + ORDER_NUMBER_OFFSET)
 
     async def paginate_for_user(
         self, user_id: int, page: int, per_page: int

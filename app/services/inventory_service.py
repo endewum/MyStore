@@ -245,11 +245,13 @@ class InventoryService:
         return await self._build_change(plan, snapshot, delta=delta)
 
     # ------------------------------------------------------ order integration
-    async def reserve_for_order(self, plan: Plan, order: Order, quantity: int = 1) -> None:
-        """Hold stock for a freshly created order.
+    async def reserve_stock(self, plan: Plan, quantity: int = 1) -> Plan:
+        """Lock the plan row and hold ``quantity`` units for a checkout.
 
-        The plan row is re-read with ``FOR UPDATE`` so two customers checking
-        out the last unit cannot both succeed.
+        Called *before* the order row is inserted: MySQL takes a shared lock on
+        the referenced plan when inserting ``order_items``, so locking the plan
+        exclusively first avoids a lock-upgrade deadlock between concurrent
+        buyers.
         """
         locked = await self.plans.get_for_update(plan.id)
         if locked is None:
@@ -260,17 +262,22 @@ class InventoryService:
             raise OutOfStockError()
 
         locked.reserved_quantity += quantity
-        if locked.delivery_type is not DeliveryType.MANUAL:
-            items = await self.items.take_available(locked.id, quantity)
-            for item in items:
-                item.status = InventoryStatus.RESERVED
-                item.order_id = order.id
-                item.reserved_at = utcnow()
         await self.session.flush()
-        # Keep the caller's instance consistent with the locked row.
-        if locked is not plan:
-            plan.reserved_quantity = locked.reserved_quantity
-            plan.stock_quantity = locked.stock_quantity
+        return locked
+
+    async def assign_inventory(
+        self, plan: Plan, order: Order, quantity: int = 1
+    ) -> Sequence[InventoryItem]:
+        """Attach concrete inventory rows to an order that already holds stock."""
+        if plan.delivery_type is DeliveryType.MANUAL:
+            return []
+        items = await self.items.take_available(plan.id, quantity)
+        for item in items:
+            item.status = InventoryStatus.RESERVED
+            item.order_id = order.id
+            item.reserved_at = utcnow()
+        await self.session.flush()
+        return items
 
     async def release_for_order(self, order: Order) -> None:
         """Return reserved stock after a cancellation or refund."""

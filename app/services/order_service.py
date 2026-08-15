@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from decimal import Decimal
+from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +23,7 @@ from app.database.models import (
     OrderStatus,
     Plan,
     User,
+    format_order_number,
 )
 from app.database.repositories import (
     AdminLogRepository,
@@ -162,7 +164,15 @@ class OrderService:
         if not plan.is_active or not plan.product.is_active:
             raise ValidationError("This plan is not on sale right now.")
 
-        subtotal = Decimal(plan.price)
+        # Read the product name before locking: re-reading the plan row refreshes
+        # the instance and drops its already-loaded relationships.
+        product_name = plan.product.name
+
+        # Take the stock first: this locks the plan row, so a sold-out plan is
+        # rejected before any order row exists.
+        locked_plan = await self.inventory.reserve_stock(plan)
+
+        subtotal = Decimal(locked_plan.price)
         coupon: Coupon | None = None
         discount = Decimal("0.00")
         if coupon_code:
@@ -170,14 +180,15 @@ class OrderService:
             discount = coupon.discount_for(subtotal)
 
         order = Order(
-            order_number=await self.orders.next_order_number(),
+            # Replaced with the id-derived number right after the insert.
+            order_number=f"tmp-{uuid4().hex[:16]}",
             user_id=user.id,
             telegram_id=user.telegram_id,
             status=OrderStatus.PENDING_PAYMENT,
             subtotal=subtotal,
             discount=discount,
             total=subtotal - discount,
-            currency=plan.currency,
+            currency=locked_plan.currency,
             coupon_id=coupon.id if coupon else None,
             coupon_code=coupon.code if coupon else None,
             expires_at=in_minutes(
@@ -188,20 +199,22 @@ class OrderService:
         # a pending collection avoids a lazy load, and the insert cascades.
         order.items.append(
             OrderItem(
-                plan_id=plan.id,
-                product_id=plan.product_id,
-                product_name=plan.product.name,
-                plan_name=plan.name,
-                duration=plan.duration,
-                unit_price=plan.price,
+                plan_id=locked_plan.id,
+                product_id=locked_plan.product_id,
+                product_name=product_name,
+                plan_name=locked_plan.name,
+                duration=locked_plan.duration,
+                unit_price=locked_plan.price,
                 quantity=1,
-                delivery_type=plan.delivery_type.value,
+                delivery_type=locked_plan.delivery_type.value,
             )
         )
         await self.orders.add(order)
+        order.order_number = format_order_number(order.id)
+        await self.session.flush()
 
-        # Reserve after the order exists so inventory rows can reference it.
-        await self.inventory.reserve_for_order(plan, order)
+        # Inventory rows can only reference the order once it exists.
+        await self.inventory.assign_inventory(locked_plan, order)
 
         if coupon is not None:
             coupon.used_count += 1

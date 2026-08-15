@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 
 from app.database.models import (
+    ORDER_NUMBER_OFFSET,
     InventoryStatus,
     OrderStatus,
     Plan,
@@ -60,6 +61,31 @@ async def test_cannot_order_sold_out_plan(
 ) -> None:
     with pytest.raises(OutOfStockError):
         await services.orders.create_order(customer, sold_out_plan)
+
+
+async def test_failed_checkout_leaves_no_order_row(
+    services: Services, customer: User, sold_out_plan: Plan
+) -> None:
+    """Stock is taken before the order is inserted, so a rejected checkout
+    cannot leave an orphan order behind."""
+    with pytest.raises(OutOfStockError):
+        await services.orders.create_order(customer, sold_out_plan)
+
+    assert (await services.orders.paginate_admin(None, 1, 10)).total == 0
+
+
+async def test_order_numbers_are_unique_and_derived_from_the_id(
+    services: Services, customer: User, plan: Plan
+) -> None:
+    """Numbers come from the primary key, so concurrent checkouts cannot collide."""
+    orders = [await services.orders.create_order(customer, plan) for _ in range(3)]
+
+    numbers = [order.order_number for order in orders]
+    assert len(set(numbers)) == 3
+    assert all(not number.startswith("tmp-") for number in numbers)
+    assert numbers == [
+        str(order.id + ORDER_NUMBER_OFFSET) for order in orders
+    ]
 
 
 async def test_last_unit_race_is_rejected(

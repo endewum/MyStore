@@ -122,13 +122,20 @@ class PlanRepository(BaseRepository[Plan]):
         return (await self.session.scalars(stmt)).first()
 
     async def get_for_update(self, plan_id: int) -> Plan | None:
-        """Row-locked read used when reserving stock.
+        """Row-locked, freshly-read plan used when reserving stock.
 
-        ``SELECT ... FOR UPDATE`` serialises concurrent buyers on MySQL. SQLite
-        has no row locks, so ``with_for_update`` is skipped there (tests run
-        single-connection anyway).
+        ``SELECT ... FOR UPDATE`` serialises concurrent buyers on MySQL, and
+        ``populate_existing`` is essential: without it SQLAlchemy would return
+        the identity-mapped instance with its stale ``reserved_quantity``, and
+        the lock would protect nothing. SQLite has no row locks, so the locking
+        clause is skipped there.
         """
-        stmt = select(Plan).where(Plan.id == plan_id).limit(1)
+        stmt = (
+            select(Plan)
+            .where(Plan.id == plan_id)
+            .limit(1)
+            .execution_options(populate_existing=True)
+        )
         if self.session.bind is not None and self.session.bind.dialect.name != "sqlite":
             stmt = stmt.with_for_update()
         return (await self.session.scalars(stmt)).first()

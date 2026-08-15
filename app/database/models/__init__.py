@@ -32,6 +32,7 @@ from app.database.models.order import (
     Order,
     OrderItem,
     OrderStatusHistory,
+    format_order_number,
 )
 from app.database.models.payment import Payment, PaymentMethod
 from app.database.models.system import AdminLog, Coupon, Setting
@@ -72,4 +73,5 @@ __all__ = [
     "StockAlertStatus",
     "TimestampMixin",
     "User",
+    "format_order_number",
 ]

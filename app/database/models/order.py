@@ -32,6 +32,15 @@ if TYPE_CHECKING:
 ORDER_NUMBER_OFFSET = 10_000
 
 
+def format_order_number(order_id: int) -> str:
+    """Customer facing number for an order.
+
+    Derived from the primary key so it is unique even when several customers
+    check out at the same moment.
+    """
+    return str(order_id + ORDER_NUMBER_OFFSET)
+
+
 class Order(IntPrimaryKeyMixin, TimestampMixin, Base):
     """A customer order. One order currently carries a single plan."""
 

@@ -142,7 +142,7 @@ telegram_store/
 │   ├── config.py             pydantic-settings
 │   └── main.py               polling / webhook entry point
 ├── scripts/                  seed.py, create_admin.py
-├── tests/                    140 tests (SQLite, no external services)
+├── tests/                    142 tests (SQLite, no external services)
 ├── Dockerfile / docker-compose.yml
 ├── alembic.ini / requirements.txt / .env.example
 ```
@@ -416,7 +416,7 @@ Checklist:
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                       # 140 tests
+pytest                       # 142 tests
 pytest tests/test_orders.py -v
 ```
 
